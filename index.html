@@ -12,14 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg-base: #0f0f0f;
-            --bg-panel: #1a1a1a;
-            --bg-hover: #2a2a2a;
-            --bg-active: #3a3a3a;
-            --text-main: #ffffff;
-            --text-muted: #aaaaaa;
-            --accent: #e50914;
-            --border: #333333;
+            --bg-base: #0f0f0f; --bg-panel: #1a1a1a; --bg-hover: #2a2a2a; --bg-active: #3a3a3a;
+            --text-main: #ffffff; --text-muted: #aaaaaa; --accent: #e50914; --border: #333333;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -28,42 +22,33 @@
         ::-webkit-scrollbar-track { background: var(--bg-base); }
         ::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
 
-        /* Sidebar */
         .sidebar { width: 60px; background-color: var(--bg-panel); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 30px; border-right: 1px solid var(--border); z-index: 100; }
         .sidebar i { font-size: 20px; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
         .sidebar i:hover, .sidebar i.active { color: var(--accent); }
 
-        /* Categorías */
         .categories-panel { width: 240px; background-color: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 90; }
         .panel-header { padding: 15px; font-size: 14px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
-        .search-box { background: var(--bg-base); border: 1px solid var(--border); padding: 8px; border-radius: 4px; color: white; width: 100%; outline: none; }
         .category-list { list-style: none; overflow-y: auto; flex-grow: 1; }
         .category-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
         .category-item:hover { background-color: var(--bg-hover); }
         .category-item.active { background-color: var(--bg-active); border-left: 3px solid var(--accent); font-weight: bold; }
-        .cat-count { font-size: 10px; background: var(--bg-base); padding: 2px 6px; border-radius: 10px; color: var(--text-muted); }
 
-        /* Contenido Principal */
         .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Reproductor */
         .player-section { display: flex; height: 50vh; background-color: #000; border-bottom: 1px solid var(--border); }
         .video-container { flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
         video { width: 100%; height: 100%; outline: none; }
         .program-info { width: 300px; background-color: var(--bg-panel); padding: 20px; display: flex; flex-direction: column; border-left: 1px solid var(--border); overflow-y: auto; }
         .info-tag { background: var(--accent); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-bottom: 10px; align-self: flex-start; }
         .info-title { font-size: 18px; font-weight: 700; margin-bottom: 5px; }
-        .info-channel { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-        .info-channel img { width: 30px; height: 30px; object-fit: contain; border-radius: 4px; background: #fff; padding: 2px; }
 
-        /* Lista de Canales (Grid estilo EPG simplificado) */
         .epg-section { flex-grow: 1; background-color: var(--bg-base); overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 15px; align-content: start; }
         .channel-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; text-align: center; transition: 0.2s; }
         .channel-card:hover { border-color: var(--accent); transform: translateY(-2px); }
         .channel-card img { width: 60px; height: 60px; object-fit: contain; margin-bottom: 10px; background: rgba(255,255,255,0.1); border-radius: 4px; padding: 5px; }
         .channel-card .c-name { font-size: 13px; font-weight: 600; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-size: 18px; }
+        .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-size: 18px; text-align: center; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -80,22 +65,17 @@
     </style>
 </head>
 <body>
-
     <div id="loader" class="loading-overlay">
         <div class="loader"></div>
-        <div id="loader-text">Cargando tu lista Xtream IPTV...<br><small>Esto puede tardar unos segundos dependiendo del tamaño de la lista.</small></div>
+        <div id="loader-text">Conectando con Xtream API...<br><small>Esquivando el bloqueo CORS</small></div>
     </div>
 
     <div class="sidebar">
         <i class="fas fa-tv active" onclick="toggleCategories()"></i>
-        <i class="fas fa-search" onclick="document.getElementById('search-input').focus()"></i>
     </div>
 
     <div class="categories-panel" id="cat-panel">
-        <div class="panel-header">
-            Grupos
-            <input type="text" id="search-input" class="search-box" placeholder="Buscar canal..." onkeyup="searchChannels()">
-        </div>
+        <div class="panel-header">Categorías</div>
         <ul class="category-list" id="category-list"></ul>
     </div>
 
@@ -111,172 +91,133 @@
             </div>
         </div>
 
-        <div class="epg-section" id="channels-grid">
-            <!-- Canales renderizados aquí -->
-        </div>
+        <div class="epg-section" id="channels-grid"></div>
     </div>
 
 <script>
-// --- DATOS DEL USUARIO (Capturados de la imagen) ---
-const M3U_URL = "http://tv-70952.123gate.org:8080/get.php?username=TV-2685917907712&password=361555909697&type=m3u_plus&output=m3u8";
+// --- DATOS XTREAM API ---
+const XTREAM_HOST = "http://tv-70952.123gate.org:8080";
+const XTREAM_USER = "TV-2685917907712";
+const XTREAM_PASS = "361555909697";
 
-// PROXY PARA EVITAR ERRORES DE CORS y MIXED CONTENT (HTTPS -> HTTP)
-const PROXY_URL = "https://api.allorigins.win/raw?url="; 
+// PROXY PARA EVITAR EL BLOQUEO CORS EN GITHUB PAGES
+const PROXY = "https://corsproxy.io/?";
 
-let allChannels = [];
-let currentCategory = 'Todos';
+let categories = [];
 let hlsInstance = null;
 
-async function loadIPTV() {
+async function loadXtreamData() {
     try {
-        // Usamos el proxy para asegurar que funciona desde GitHub Pages o cualquier sitio HTTPS
-        const response = await fetch(PROXY_URL + encodeURIComponent(M3U_URL));
-        if (!response.ok) throw new Error("Error en la red");
-        
-        const m3uText = await response.text();
-        document.getElementById('loader-text').innerText = "Procesando canales...";
-        
-        parseM3UFast(m3uText);
+        // 1. Obtener Categorías
+        const catUrl = `${XTREAM_HOST}/player_api.php?username=${XTREAM_USER}&password=${XTREAM_PASS}&action=get_live_categories`;
+        const res = await fetch(PROXY + encodeURIComponent(catUrl));
+        categories = await res.json();
         
         renderCategories();
-        filterCategory('Todos');
+        
+        // Cargar primera categoría por defecto
+        if (categories.length > 0) {
+            loadChannels(categories[0].category_id, categories[0].category_name);
+            document.querySelector('.category-item').classList.add('active');
+        }
         
         document.getElementById('loader').style.display = 'none';
-
     } catch (error) {
         console.error(error);
-        document.getElementById('loader-text').innerHTML = "<b>Error al cargar la lista.</b><br>Verifica tu conexión o los credenciales.";
-    }
-}
-
-// Parser rápido optimizado para listas M3U Plus masivas (Series, Pelis, TV)
-function parseM3UFast(data) {
-    const lines = data.split('\n');
-    let currentChannel = null;
-    
-    for (let i = 0; i < lines.length; i++) {
-        let line = lines[i].trim();
-        if (line.startsWith('#EXTINF:')) {
-            // Extraer nombre del canal (lo que hay tras la última coma)
-            let nameParts = line.split(',');
-            let name = nameParts.length > 1 ? nameParts.pop().trim() : 'Canal';
-            
-            // Extraer logo y grupo
-            let logoMatch = line.match(/tvg-logo="([^"]*)"/);
-            let groupMatch = line.match(/group-title="([^"]*)"/);
-            
-            currentChannel = {
-                name: name,
-                logo: logoMatch ? logoMatch[1] : '',
-                group: groupMatch ? groupMatch[1] : 'Sin Categoría'
-            };
-        } else if (line.startsWith('http') && currentChannel) {
-            currentChannel.url = line;
-            allChannels.push(currentChannel);
-            currentChannel = null;
-        }
+        document.getElementById('loader-text').innerHTML = "<b>Error al conectar con la API.</b><br>Intenta abrir la web en modo incógnito o revisa tu conexión.";
     }
 }
 
 function renderCategories() {
-    const groups = {};
-    allChannels.forEach(c => {
-        groups[c.group] = (groups[c.group] || 0) + 1;
-    });
-
-    // Ordenar grupos alfabéticamente
-    const sortedGroups = Object.keys(groups).sort();
-    
     const list = document.getElementById('category-list');
-    list.innerHTML = `<li class="category-item active" onclick="filterCategory('Todos', this)">
-                        <span>Todos</span> <span class="cat-count">${allChannels.length}</span>
-                      </li>`;
-    
-    sortedGroups.forEach(group => {
-        if(group.trim() !== '') {
-            list.innerHTML += `<li class="category-item" onclick="filterCategory('${group.replace(/'/g, "\'")}', this)">
-                                <span>${group}</span> <span class="cat-count">${groups[group]}</span>
-                               </li>`;
-        }
+    list.innerHTML = '';
+    categories.forEach(cat => {
+        list.innerHTML += `<li class="category-item" onclick="selectCategory('${cat.category_id}', '${cat.category_name.replace(/'/g, "\'")}', this)">
+                            <span>${cat.category_name}</span>
+                           </li>`;
     });
 }
 
-function filterCategory(group, element = null) {
-    currentCategory = group;
-    if (element) {
-        document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-    }
-    
-    const filtered = group === 'Todos' ? allChannels : allChannels.filter(c => c.group === group);
-    renderChannels(filtered);
-}
-
-function searchChannels() {
-    const query = document.getElementById('search-input').value.toLowerCase();
-    const filtered = allChannels.filter(c => c.name.toLowerCase().includes(query));
-    
+async function selectCategory(id, name, element) {
     document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
-    renderChannels(filtered);
-}
-
-function renderChannels(channels) {
-    const grid = document.getElementById('channels-grid');
-    grid.innerHTML = '';
+    element.classList.add('active');
     
-    // Solo renderizamos los primeros 200 para no bloquear el navegador si la lista es enorme
-    const limit = Math.min(channels.length, 200);
+    document.getElementById('channels-grid').innerHTML = '<div style="color: white; margin: 20px;">Cargando canales...</div>';
+    await loadChannels(id, name);
     
-    for (let i = 0; i < limit; i++) {
-        const c = channels[i];
-        const card = document.createElement('div');
-        card.className = 'channel-card';
-        card.innerHTML = `
-            <img src="${c.logo}" onerror="this.src='https://via.placeholder.com/60/1a1a1a/ffffff?text=TV'">
-            <div class="c-name">${c.name}</div>
-        `;
-        card.onclick = () => playChannel(c);
-        grid.appendChild(card);
-    }
-    
-    if (channels.length > 200) {
-        grid.innerHTML += `<div style="grid-column: 1 / -1; text-align:center; padding: 20px; color: var(--text-muted);">
-            Se muestran 200 canales. Usa el buscador para encontrar más.
-        </div>`;
+    if (window.innerWidth <= 768) {
+        document.getElementById('cat-panel').classList.remove('mobile-active');
     }
 }
 
-function playChannel(channel) {
+async function loadChannels(categoryId, categoryName) {
+    try {
+        const streamUrl = `${XTREAM_HOST}/player_api.php?username=${XTREAM_USER}&password=${XTREAM_PASS}&action=get_live_streams&category_id=${categoryId}`;
+        const res = await fetch(PROXY + encodeURIComponent(streamUrl));
+        const streams = await res.json();
+        
+        const grid = document.getElementById('channels-grid');
+        grid.innerHTML = '';
+        
+        streams.forEach(stream => {
+            const card = document.createElement('div');
+            card.className = 'channel-card';
+            
+            // La URL directa de reproducción de Xtream Codes
+            // Formato: http://host:port/live/user/pass/stream_id.m3u8
+            const playUrl = `${XTREAM_HOST}/live/${XTREAM_USER}/${XTREAM_PASS}/${stream.stream_id}.m3u8`;
+            
+            card.innerHTML = `
+                <img src="${stream.stream_icon}" onerror="this.src='https://via.placeholder.com/60/1a1a1a/ffffff?text=TV'">
+                <div class="c-name">${stream.name}</div>
+            `;
+            card.onclick = () => playChannel(playUrl, stream.name, stream.stream_icon, categoryName);
+            grid.appendChild(card);
+        });
+    } catch (error) {
+        console.error("Error cargando canales:", error);
+    }
+}
+
+function playChannel(url, name, logo, category) {
     const video = document.getElementById('video-player');
     
-    if (Hls.isSupported() && channel.url.includes('.m3u8')) {
+    // Si la web es HTTPS y el stream es HTTP, usamos el proxy para el stream HLS
+    let proxyUrl = url;
+    if (window.location.protocol === 'https:' && url.startsWith('http:')) {
+        // hls.js necesita cargar archivos m3u8 y ts, esto puede ser problemático con proxys básicos, 
+        // pero intentamos usar corsproxy.io
+        proxyUrl = PROXY + encodeURIComponent(url);
+    }
+
+    if (Hls.isSupported()) {
         if (hlsInstance) hlsInstance.destroy();
         hlsInstance = new Hls();
-        hlsInstance.loadSource(channel.url);
+        hlsInstance.loadSource(proxyUrl);
         hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+        
+        // Manejar errores de HLS (CORS bloqueando los segmentos de video)
+        hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+                console.error("Error fatal de HLS:", data);
+            }
+        });
     } else {
-        // Fallback para MP4/MKV (VOD) o si el navegador soporta HLS nativo (Safari)
-        video.src = channel.url;
+        video.src = proxyUrl;
         video.play().catch(()=>{});
     }
 
-    // Actualizar info panel
     const panel = document.getElementById('program-info-panel');
     if(panel) {
         panel.innerHTML = `
             <span class="info-tag">REPRODUCIENDO</span>
             <div class="info-channel">
-                <img src="${channel.logo}" onerror="this.src='https://via.placeholder.com/30/1a1a1a/ffffff?text=TV'">
-                <span>${channel.group}</span>
+                <img src="${logo}" onerror="this.src='https://via.placeholder.com/30/1a1a1a/ffffff?text=TV'">
+                <span>${category}</span>
             </div>
-            <div class="info-title">${channel.name}</div>
+            <div class="info-title">${name}</div>
         `;
-    }
-    
-    // En móviles, ocultar el panel de categorías al reproducir
-    if (window.innerWidth <= 768) {
-        document.getElementById('cat-panel').classList.remove('mobile-active');
     }
 }
 
@@ -286,8 +227,7 @@ function toggleCategories() {
     }
 }
 
-// Iniciar app
-document.addEventListener('DOMContentLoaded', loadIPTV);
+document.addEventListener('DOMContentLoaded', loadXtreamData);
 </script>
 </body>
 </html>
