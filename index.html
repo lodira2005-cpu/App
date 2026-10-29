@@ -35,9 +35,12 @@
 
         .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-        .player-section { display: flex; height: 50vh; background-color: #000; border-bottom: 1px solid var(--border); }
+        .player-section { display: flex; height: 50vh; background-color: #000; border-bottom: 1px solid var(--border); position: relative; }
         .video-container { flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
         video { width: 100%; height: 100%; outline: none; }
+        
+        .mixed-content-warning { position: absolute; top: 10px; left: 10px; right: 10px; background: rgba(229, 9, 20, 0.9); padding: 10px; border-radius: 5px; font-size: 12px; text-align: center; display: none; z-index: 10; }
+        
         .program-info { width: 300px; background-color: var(--bg-panel); padding: 20px; display: flex; flex-direction: column; border-left: 1px solid var(--border); overflow-y: auto; }
         .info-tag { background: var(--accent); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-bottom: 10px; align-self: flex-start; }
         .info-title { font-size: 18px; font-weight: 700; margin-bottom: 5px; }
@@ -48,8 +51,8 @@
         .channel-card img { width: 60px; height: 60px; object-fit: contain; margin-bottom: 10px; background: rgba(255,255,255,0.1); border-radius: 4px; padding: 5px; }
         .channel-card .c-name { font-size: 13px; font-weight: 600; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-size: 18px; text-align: center; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-size: 16px; text-align: center; padding: 20px;}
+        .loader { border: 4px solid #333; border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         @media (max-width: 768px) {
@@ -67,7 +70,8 @@
 <body>
     <div id="loader" class="loading-overlay">
         <div class="loader"></div>
-        <div id="loader-text">Conectando con Xtream API...<br><small>Esquivando el bloqueo CORS</small></div>
+        <div id="loader-text">Conectando...<br><small>Por favor, espera unos segundos.</small></div>
+        <div id="error-details" style="color: #ff4444; margin-top: 15px; font-size: 12px; font-family: monospace;"></div>
     </div>
 
     <div class="sidebar">
@@ -81,6 +85,10 @@
 
     <div class="main-content">
         <div class="player-section">
+            <div class="mixed-content-warning" id="mixed-warning">
+                <b>El vídeo está bloqueado por tu navegador.</b><br>
+                Dale al candado en la barra de direcciones 🔒 -> Configuración del sitio -> Permite "Contenido no seguro" y recarga la página.
+            </div>
             <div class="video-container">
                 <video id="video-player" controls autoplay playsinline></video>
             </div>
@@ -100,31 +108,47 @@ const XTREAM_HOST = "http://tv-70952.123gate.org:8080";
 const XTREAM_USER = "TV-2685917907712";
 const XTREAM_PASS = "361555909697";
 
-// PROXY PARA EVITAR EL BLOQUEO CORS EN GITHUB PAGES
-const PROXY = "https://corsproxy.io/?";
-
 let categories = [];
 let hlsInstance = null;
+
+// FUNCIÓN DE PETICIÓN INFALIBLE (Extrae el JSON desde AllOrigins)
+async function fetchXtream(action, extraParams = "") {
+    const targetUrl = `${XTREAM_HOST}/player_api.php?username=${XTREAM_USER}&password=${XTREAM_PASS}&action=${action}${extraParams}`;
+    
+    // Usamos allorigins.win con /get que devuelve un JSON encapsulado (evita problemas de parsing directo de corsproxy)
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error(`Proxy respondió con estado ${response.status}`);
+    
+    const data = await response.json();
+    if (data.contents) {
+        return JSON.parse(data.contents);
+    } else {
+        throw new Error("La respuesta del proxy estaba vacía.");
+    }
+}
 
 async function loadXtreamData() {
     try {
         // 1. Obtener Categorías
-        const catUrl = `${XTREAM_HOST}/player_api.php?username=${XTREAM_USER}&password=${XTREAM_PASS}&action=get_live_categories`;
-        const res = await fetch(PROXY + encodeURIComponent(catUrl));
-        categories = await res.json();
+        document.getElementById('loader-text').innerHTML = "Descargando categorías...";
+        categories = await fetchXtream("get_live_categories");
         
         renderCategories();
         
         // Cargar primera categoría por defecto
         if (categories.length > 0) {
             loadChannels(categories[0].category_id, categories[0].category_name);
-            document.querySelector('.category-item').classList.add('active');
+            const firstItem = document.querySelector('.category-item');
+            if(firstItem) firstItem.classList.add('active');
         }
         
         document.getElementById('loader').style.display = 'none';
     } catch (error) {
         console.error(error);
-        document.getElementById('loader-text').innerHTML = "<b>Error al conectar con la API.</b><br>Intenta abrir la web en modo incógnito o revisa tu conexión.";
+        document.getElementById('loader-text').innerHTML = "<b>Fallo al conectar con el servidor.</b>";
+        document.getElementById('error-details').innerText = error.message;
     }
 }
 
@@ -152,9 +176,7 @@ async function selectCategory(id, name, element) {
 
 async function loadChannels(categoryId, categoryName) {
     try {
-        const streamUrl = `${XTREAM_HOST}/player_api.php?username=${XTREAM_USER}&password=${XTREAM_PASS}&action=get_live_streams&category_id=${categoryId}`;
-        const res = await fetch(PROXY + encodeURIComponent(streamUrl));
-        const streams = await res.json();
+        const streams = await fetchXtream("get_live_streams", `&category_id=${categoryId}`);
         
         const grid = document.getElementById('channels-grid');
         grid.innerHTML = '';
@@ -163,8 +185,6 @@ async function loadChannels(categoryId, categoryName) {
             const card = document.createElement('div');
             card.className = 'channel-card';
             
-            // La URL directa de reproducción de Xtream Codes
-            // Formato: http://host:port/live/user/pass/stream_id.m3u8
             const playUrl = `${XTREAM_HOST}/live/${XTREAM_USER}/${XTREAM_PASS}/${stream.stream_id}.m3u8`;
             
             card.innerHTML = `
@@ -176,35 +196,27 @@ async function loadChannels(categoryId, categoryName) {
         });
     } catch (error) {
         console.error("Error cargando canales:", error);
+        document.getElementById('channels-grid').innerHTML = '<div style="color: red; margin: 20px;">Error cargando canales.</div>';
     }
 }
 
 function playChannel(url, name, logo, category) {
     const video = document.getElementById('video-player');
     
-    // Si la web es HTTPS y el stream es HTTP, usamos el proxy para el stream HLS
-    let proxyUrl = url;
+    // Mostramos aviso de Mixed Content si estamos en HTTPS (GitHub Pages) y el stream es HTTP
     if (window.location.protocol === 'https:' && url.startsWith('http:')) {
-        // hls.js necesita cargar archivos m3u8 y ts, esto puede ser problemático con proxys básicos, 
-        // pero intentamos usar corsproxy.io
-        proxyUrl = PROXY + encodeURIComponent(url);
+        document.getElementById('mixed-warning').style.display = 'block';
+        setTimeout(() => { document.getElementById('mixed-warning').style.display = 'none'; }, 10000);
     }
-
+    
     if (Hls.isSupported()) {
         if (hlsInstance) hlsInstance.destroy();
         hlsInstance = new Hls();
-        hlsInstance.loadSource(proxyUrl);
+        hlsInstance.loadSource(url);
         hlsInstance.attachMedia(video);
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
-        
-        // Manejar errores de HLS (CORS bloqueando los segmentos de video)
-        hlsInstance.on(Hls.Events.ERROR, function (event, data) {
-            if (data.fatal) {
-                console.error("Error fatal de HLS:", data);
-            }
-        });
     } else {
-        video.src = proxyUrl;
+        video.src = url;
         video.play().catch(()=>{});
     }
 
