@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IPTV Pro</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f0f0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IPTV Pro">
+    
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-base: #0f0f0f;
+            --bg-panel: #1a1a1a;
+            --bg-hover: #2a2a2a;
+            --bg-active: #3a3a3a;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --accent: #e50914;
+            --border: #333333;
+            --epg-hour-width: 300px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            user-select: none; /* Evita selección de texto al usarlo como app táctil */
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+
+        .sidebar {
+            width: 60px;
+            background-color: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            gap: 30px;
+            border-right: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .sidebar i { font-size: 20px; color: var(--text-muted); cursor: pointer; }
+        .sidebar i:hover, .sidebar i.active { color: var(--accent); }
+
+        .categories-panel {
+            width: 220px;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 90;
+        }
+
+        .panel-header {
+            padding: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .category-list { list-style: none; overflow-y: auto; flex-grow: 1; }
+        .category-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .category-item.active { background-color: var(--bg-active); border-left: 3px solid var(--accent); }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .player-section { display: flex; height: 55vh; background-color: #000; border-bottom: 1px solid var(--border); }
+        .video-container { flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
+        video { width: 100%; height: 100%; outline: none; }
+
+        .program-info {
+            width: 320px;
+            background-color: var(--bg-panel);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .info-tag { background: var(--accent); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-bottom: 10px; align-self: flex-start; }
+        .info-title { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
+        .info-channel { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .info-channel img { width: 30px; height: 30px; object-fit: contain; border-radius: 4px; }
+        .info-time { font-size: 14px; margin-bottom: 15px; font-weight: 600; }
+        
+        .progress-container { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 1s linear; }
+        .info-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+        .epg-section { flex-grow: 1; position: relative; background-color: var(--bg-base); overflow: auto; display: flex; flex-direction: column; }
+        .epg-grid-container { position: relative; min-width: max-content; }
+        .epg-header { display: flex; position: sticky; top: 0; z-index: 20; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
+        .epg-header-spacer { width: 200px; min-width: 200px; position: sticky; left: 0; background: var(--bg-panel); border-right: 1px solid var(--border); z-index: 21; }
+        .epg-time-slots { display: flex; position: relative; }
+        .time-slot { width: calc(var(--epg-hour-width) / 2); padding: 10px; font-size: 12px; color: var(--text-muted); border-right: 1px solid var(--border); font-weight: 600; }
+
+        .epg-row { display: flex; height: 70px; border-bottom: 1px solid var(--border); }
+        .channel-info { width: 200px; min-width: 200px; position: sticky; left: 0; background: var(--bg-base); border-right: 1px solid var(--border); z-index: 10; display: flex; align-items: center; padding: 0 15px; gap: 10px; cursor: pointer; }
+        .channel-info img { width: 40px; height: 40px; object-fit: contain; border-radius: 4px; background: #fff; padding: 2px; }
+        .channel-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .programs-track { position: relative; flex-grow: 1; display: flex; }
+        .program-block { position: absolute; height: 100%; background: var(--bg-panel); border-right: 1px solid var(--border); padding: 8px 12px; cursor: pointer; overflow: hidden; }
+        .program-block.active { background: var(--bg-active); border-bottom: 2px solid var(--accent); }
+        .program-block .p-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        .program-block .p-time { font-size: 11px; color: var(--text-muted); }
+        .no-info { background: repeating-linear-gradient(45deg, var(--bg-base), var(--bg-base) 10px, var(--bg-panel) 10px, var(--bg-panel) 20px); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .current-time-marker { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 15; box-shadow: 0 0 10px var(--accent); pointer-events: none; }
+
+        /* Media Query básico para móviles */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { flex-direction: row; width: 100%; height: 60px; padding: 0 20px; border-right: none; border-bottom: 1px solid var(--border); justify-content: space-around; }
+            .sidebar i { margin: 0 !important; }
+            .categories-panel { display: none; } /* Oculto en móvil por defecto */
+            .player-section { flex-direction: column; height: auto; }
+            .video-container { height: 250px; }
+            .program-info { width: 100%; border-left: none; border-bottom: 1px solid var(--border); height: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <i class="fas fa-tv active"></i>
+        <i class="fas fa-search"></i>
+        <i class="fas fa-film"></i>
+        <i class="fas fa-cog"></i>
+    </div>
+
+    <div class="categories-panel">
+        <div class="panel-header">Grupos</div>
+        <ul class="category-list" id="category-list"></ul>
+    </div>
+
+    <div class="main-content">
+        <div class="player-section">
+            <div class="video-container">
+                <video id="video-player" controls autoplay playsinline></video>
+            </div>
+            <div class="program-info" id="program-info-panel">
+                <div style="margin: auto; text-align: center; color: var(--text-muted);">
+                    Selecciona un canal para reproducir
+                </div>
+            </div>
+        </div>
+
+        <div class="epg-section" id="epg-container">
+            <div class="epg-grid-container" id="epg-grid"></div>
+        </div>
+    </div>
+
+<script>
+// --- Registro del Service Worker para la PWA ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+            console.log('App instalable lista (SW registrado):', reg.scope);
+        }).catch(err => {
+            console.log('Error registrando SW:', err);
+        });
+    });
+}
+
+// --- Lógica IPTV ---
+const now = new Date();
+const formatDT = (d) => {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}00 +0000`;
+};
+
+const dMinus1 = new Date(now.getTime() - 3600000 * 1);
+const dNow = now;
+const dPlus1 = new Date(now.getTime() + 3600000 * 1.5);
+const dPlus3 = new Date(now.getTime() + 3600000 * 3.5);
+
+const mockM3U = `
+#EXTM3U
+#EXTINF:-1 tvg-id="la1.es" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/La_1_logo.svg/1024px-La_1_logo.svg.png" group-title="Nacionales",La 1
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+#EXTINF:-1 tvg-id="antena3.es" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Antena_3_logo.svg/1024px-Antena_3_logo.svg.png" group-title="Nacionales",Antena 3
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+#EXTINF:-1 tvg-id="laliga.es" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/LaLiga_EA_Sports_2023_Vertical_Logo.svg/1024px-LaLiga_EA_Sports_2023_Vertical_Logo.svg.png" group-title="Deportes",ES - LaLiga TV
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+`;
+
+const mockXMLTV = `
+<?xml version="1.0" encoding="UTF-8"?>
+<tv>
+  <programme channel="la1.es" start="${formatDT(dMinus1)}" stop="${formatDT(dPlus1)}">
+    <title>Telediario 1</title>
+    <desc>Toda la actualidad nacional e internacional de la jornada.</desc>
+  </programme>
+  <programme channel="antena3.es" start="${formatDT(dNow)}" stop="${formatDT(dPlus3)}">
+    <title>Pasapalabra</title>
+    <desc>Dos concursantes intentan completar el Rosco final.</desc>
+  </programme>
+  <programme channel="laliga.es" start="${formatDT(dMinus1)}" stop="${formatDT(dPlus3)}">
+    <title>Real Madrid vs Barcelona</title>
+    <desc>El Clásico en directo.</desc>
+  </programme>
+</tv>
+`;
+
+const PX_PER_HOUR = 300;
+const PX_PER_MINUTE = PX_PER_HOUR / 60;
+const EPG_HOURS_TO_RENDER = 6; 
+
+let baseEPGTime = new Date();
+baseEPGTime.setHours(baseEPGTime.getHours() - 1);
+baseEPGTime.setMinutes(0, 0, 0);
+
+let parsedChannels = [];
+let parsedEPG = {};
+let hlsInstance = null;
+let progressInterval = null;
+
+async function parseM3U(data) {
+    const lines = data.split('\n');
+    const channels = [];
+    let current = {};
+    for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith('#EXTINF:')) {
+            current = {
+                id: line.match(/tvg-id="([^"]+)"/)?.[1] || '',
+                logo: line.match(/tvg-logo="([^"]+)"/)?.[1] || '',
+                group: line.match(/group-title="([^"]+)"/)?.[1] || 'Otros',
+                name: line.match(/,(.+)$/)?.[1] || 'Canal'
+            };
+        } else if (line && !line.startsWith('#')) {
+            current.url = line;
+            channels.push(current);
+            current = {};
+        }
+    }
+    return channels;
+}
+
+async function parseXMLTV(data) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(data, "text/xml");
+    const programmes = xmlDoc.getElementsByTagName("programme");
+    const epg = {};
+    const parseDateStr = (str) => {
+        if (!str) return new Date();
+        return new Date(str.substring(0,4), parseInt(str.substring(4,6))-1, str.substring(6,8), str.substring(8,10), str.substring(10,12), 0);
+    };
+    for (let i = 0; i < programmes.length; i++) {
+        const prog = programmes[i];
+        const channelId = prog.getAttribute("channel");
+        if (!epg[channelId]) epg[channelId] = [];
+        epg[channelId].push({
+            title: prog.getElementsByTagName("title")[0]?.textContent || "Sin título",
+            desc: prog.getElementsByTagName("desc")[0]?.textContent || "",
+            start: parseDateStr(prog.getAttribute("start")),
+            end: parseDateStr(prog.getAttribute("stop"))
+        });
+    }
+    return epg;
+}
+
+function renderCategories() {
+    const groups = new Set(parsedChannels.map(c => c.group));
+    const list = document.getElementById('category-list');
+    list.innerHTML = `<li class="category-item active" onclick="filterCategory('Todos', this)">Todos los canales</li>`;
+    groups.forEach(group => {
+        list.innerHTML += `<li class="category-item" onclick="filterCategory('${group}', this)">${group}</li>`;
+    });
+}
+
+function filterCategory(group, element) {
+    document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
+    if(element) element.classList.add('active');
+    renderEPG(group === 'Todos' ? parsedChannels : parsedChannels.filter(c => c.group === group));
+}
+
+function renderEPG(channels) {
+    const grid = document.getElementById('epg-grid');
+    grid.innerHTML = '';
+
+    const header = document.createElement('div');
+    header.className = 'epg-header';
+    header.innerHTML = `<div class="epg-header-spacer"></div>`;
+    
+    const timeSlots = document.createElement('div');
+    timeSlots.className = 'epg-time-slots';
+    for (let i = 0; i < EPG_HOURS_TO_RENDER * 2; i++) {
+        const slotTime = new Date(baseEPGTime.getTime() + (i * 30 * 60000));
+        timeSlots.innerHTML += `<div class="time-slot">${String(slotTime.getHours()).padStart(2,'0')}:${String(slotTime.getMinutes()).padStart(2,'0')}</div>`;
+    }
+    const timelineWidth = (EPG_HOURS_TO_RENDER * 60) * PX_PER_MINUTE;
+    timeSlots.style.width = `${timelineWidth}px`;
+    header.appendChild(timeSlots);
+    grid.appendChild(header);
+
+    const nowOffsetMin = (new Date() - baseEPGTime) / 60000;
+    if (nowOffsetMin > 0 && nowOffsetMin < (EPG_HOURS_TO_RENDER * 60)) {
+        const marker = document.createElement('div');
+        marker.className = 'current-time-marker';
+        marker.style.left = `${nowOffsetMin * PX_PER_MINUTE}px`;
+        timeSlots.appendChild(marker);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'epg-body';
+
+    channels.forEach(channel => {
+        const row = document.createElement('div');
+        row.className = 'epg-row';
+        const info = document.createElement('div');
+        info.className = 'channel-info';
+        info.innerHTML = `<img src="${channel.logo}"><div class="channel-name">${channel.name}</div>`;
+        info.onclick = () => playChannel(channel);
+        row.appendChild(info);
+
+        const track = document.createElement('div');
+        track.className = 'programs-track';
+        track.style.width = `${timelineWidth}px`;
+
+        const programs = parsedEPG[channel.id] || [];
+        let hasPrograms = false;
+
+        programs.forEach(prog => {
+            const startMin = (prog.start - baseEPGTime) / 60000;
+            const durationMin = (prog.end - prog.start) / 60000;
+            if (startMin + durationMin > 0 && startMin < (EPG_HOURS_TO_RENDER * 60)) {
+                hasPrograms = true;
+                const block = document.createElement('div');
+                block.className = 'program-block';
+                const renderStart = Math.max(0, startMin);
+                const offsetStart = startMin < 0 ? Math.abs(startMin) : 0;
+                block.style.left = `${renderStart * PX_PER_MINUTE}px`;
+                block.style.width = `${(durationMin - offsetStart) * PX_PER_MINUTE}px`;
+                block.innerHTML = `<div class="p-title">${prog.title}</div><div class="p-time">${String(prog.start.getHours()).padStart(2,'0')}:${String(prog.start.getMinutes()).padStart(2,'0')}</div>`;
+                block.onclick = (e) => { e.stopPropagation(); playChannel(channel, prog); };
+                track.appendChild(block);
+            }
+        });
+
+        if (!hasPrograms) {
+            const noInfo = document.createElement('div');
+            noInfo.className = 'program-block no-info';
+            noInfo.style.left = '0'; noInfo.style.width = '100%';
+            noInfo.innerText = 'Sin información disponible';
+            track.appendChild(noInfo);
+        }
+        row.appendChild(track);
+        body.appendChild(row);
+    });
+    grid.appendChild(body);
+}
+
+function playChannel(channel, forceProgram = null) {
+    const video = document.getElementById('video-player');
+    if (Hls.isSupported()) {
+        if (hlsInstance) hlsInstance.destroy();
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(channel.url);
+        hlsInstance.attachMedia(video);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = channel.url;
+        video.addEventListener('loadedmetadata', () => video.play());
+    }
+
+    let activeProgram = forceProgram || (parsedEPG[channel.id] ? parsedEPG[channel.id].find(p => new Date() >= p.start && new Date() <= p.end) : null);
+    updateInfoPanel(channel, activeProgram);
+    if (progressInterval) clearInterval(progressInterval);
+    if (activeProgram) progressInterval = setInterval(() => updateProgressBar(activeProgram), 10000);
+}
+
+function updateInfoPanel(channel, program) {
+    const panel = document.getElementById('program-info-panel');
+    if (!program) {
+        panel.innerHTML = `<span class="info-tag">EN DIRECTO</span><div class="info-channel"><img src="${channel.logo}"><span>${channel.name}</span></div><div class="info-title">Programación desconocida</div>`;
+        return;
+    }
+    panel.innerHTML = `
+        <span class="info-tag">EN DIRECTO</span>
+        <div class="info-channel"><img src="${channel.logo}"><span>${channel.name}</span></div>
+        <div class="info-title">${program.title}</div>
+        <div class="info-time">${String(program.start.getHours()).padStart(2,'0')}:${String(program.start.getMinutes()).padStart(2,'0')} - ${String(program.end.getHours()).padStart(2,'0')}:${String(program.end.getMinutes()).padStart(2,'0')}</div>
+        <div class="progress-container"><div class="progress-bar" id="current-progress"></div></div>
+        <div class="info-desc">${program.desc}</div>
+    `;
+    updateProgressBar(program);
+}
+
+function updateProgressBar(program) {
+    const bar = document.getElementById('current-progress');
+    if (!bar) return;
+    const nowTime = new Date();
+    if (nowTime < program.start) bar.style.width = '0%';
+    else if (nowTime > program.end) bar.style.width = '100%';
+    else bar.style.width = `${((nowTime - program.start) / (program.end - program.start)) * 100}%`;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    parsedChannels = await parseM3U(mockM3U);
+    parsedEPG = await parseXMLTV(mockXMLTV);
+    renderCategories();
+    filterCategory('Todos', null);
+    if (parsedChannels.length > 0) playChannel(parsedChannels[0]);
+    setTimeout(() => {
+        document.getElementById('epg-container').scrollLeft = Math.max(0, (((new Date() - baseEPGTime) / 60000) * PX_PER_MINUTE) - 200);
+    }, 300);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "IPTV Pro Player",
+  "short_name": "IPTV Pro",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#e50914",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/e50914/ffffff?text=IPTV",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/e50914/ffffff?text=IPTV",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
